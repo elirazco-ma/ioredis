@@ -20,6 +20,7 @@ export interface INatMap {
  * @interface IClusterOptions
  */
 export interface IClusterOptions {
+  logger?: any;
   /**
    * See "Quick Start" section.
    *

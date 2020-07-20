@@ -4,6 +4,7 @@ const events_1 = require("events");
 const ClusterAllFailedError_1 = require("../errors/ClusterAllFailedError");
 const utils_1 = require("../utils");
 const ConnectionPool_1 = require("./ConnectionPool");
+const logtest = require("../logger");
 const util_1 = require("./util");
 const ClusterSubscriber_1 = require("./ClusterSubscriber");
 const DelayQueue_1 = require("./DelayQueue");
@@ -61,6 +62,10 @@ class Cluster extends events_1.EventEmitter {
                 this.options.scaleReads +
                 '". Expected "all", "master", "slave" or a custom function');
         }
+        this.logger = options.logger;
+        logtest.setLogger(this.logger);
+        if (this.logger)
+            this.logger.warn('IOREDIS TEST LOG');
         this.connectionPool = new ConnectionPool_1.default(this.options.redisOptions);
         this.connectionPool.on("-node", (redis, key) => {
             this.emit("-node", redis);

@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
 import { defaults, noop, Debug } from "../utils";
 import ConnectionPool from "./ConnectionPool";
+import * as logtest from "../logger";
 import {
   NodeKey,
   IRedisOptions,
@@ -63,6 +64,7 @@ class Cluster extends EventEmitter {
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
   private isRefreshing = false;
+  private logger: any;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -104,6 +106,10 @@ class Cluster extends EventEmitter {
           '". Expected "all", "master", "slave" or a custom function'
       );
     }
+
+    this.logger = options.logger;
+    logtest.setLogger(this.logger);
+    if (this.logger) this.logger.warn("IOREDIS TEST LOG");
 
     this.connectionPool = new ConnectionPool(this.options.redisOptions);
 

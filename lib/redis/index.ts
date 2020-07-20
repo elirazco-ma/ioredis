@@ -12,6 +12,7 @@ import ScanStream from "../ScanStream";
 import * as commands from "redis-commands";
 import * as PromiseContainer from "../promiseContainer";
 import { addTransactionSupport } from "../transaction";
+const { getLogger } = require("../logger");
 import {
   IRedisOptions,
   ReconnectOnError,
@@ -459,17 +460,36 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @private
  */
 Redis.prototype.flushQueue = function (error, options) {
-  options = defaults({}, {
-    offlineQueue: true,
-    commandQueue: true,
-  });
+  options = defaults(
+    {},
+    {
+      offlineQueue: true,
+      commandQueue: true,
+    }
+  );
+
+  getLogger().error("REDIS flushQueue start");
 
   let item;
   if (options.offlineQueue) {
+    getLogger().error(
+      "REDIS flushQueue queues lengths before offline queue flush",
+      {
+        offlineQueue: this.offlineQueue.length,
+        commandQueue: this.commandQueue.length,
+      }
+    );
     while (this.offlineQueue.length > 0) {
       item = this.offlineQueue.shift();
       item.command.reject(error);
     }
+    getLogger().error(
+      "REDIS flushQueue queues lengths after offline queue flush",
+      {
+        offlineQueue: this.offlineQueue.length,
+        commandQueue: this.commandQueue.length,
+      }
+    );
   }
 
   if (options.commandQueue) {
@@ -477,10 +497,24 @@ Redis.prototype.flushQueue = function (error, options) {
       if (this.stream) {
         this.stream.removeAllListeners("data");
       }
+      getLogger().error(
+        "REDIS flushQueue queues lengths before command queue flush",
+        {
+          offlineQueue: this.offlineQueue.length,
+          commandQueue: this.commandQueue.length,
+        }
+      );
       while (this.commandQueue.length > 0) {
         item = this.commandQueue.shift();
         item.command.reject(error);
       }
+      getLogger().error(
+        "REDIS flushQueue queues lengths after command queue flush",
+        {
+          offlineQueue: this.offlineQueue.length,
+          commandQueue: this.commandQueue.length,
+        }
+      );
     }
   }
 };

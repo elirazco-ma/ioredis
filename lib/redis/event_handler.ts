@@ -7,6 +7,7 @@ import { MaxRetriesPerRequestError } from "../errors";
 import { ICommandItem, ICommand } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
+const { getLogger } = require("../logger");
 
 const debug = Debug("connection");
 
@@ -154,6 +155,11 @@ function abortTransactionFragments(commandQueue: Deque<ICommandItem>) {
 export function closeHandler(self) {
   return function () {
     self.setStatus("close");
+    getLogger().error("REDIS closeHandler queues lengths", {
+      offlineQueue: self.offlineQueue.length,
+      commandQueue: self.commandQueue.length,
+      prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+    });
 
     if (!self.prevCondition) {
       self.prevCondition = self.condition;
@@ -218,6 +224,11 @@ export function closeHandler(self) {
 export function errorHandler(self) {
   return function (error) {
     debug("error: %s", error);
+    getLogger().error("REDIS errorHandler queues lengths", {
+      offlineQueue: self.offlineQueue.length,
+      commandQueue: self.commandQueue.length,
+      prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+    });
     self.silentEmit("error", error);
   };
 }
@@ -225,6 +236,11 @@ export function errorHandler(self) {
 export function readyHandler(self) {
   return function () {
     self.setStatus("ready");
+    getLogger().error("REDIS readyHandler queues lengths", {
+      offlineQueue: self.offlineQueue.length,
+      commandQueue: self.commandQueue.length,
+      prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+    });
     self.retryAttempts = 0;
 
     if (self.options.monitor) {
