@@ -459,7 +459,7 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @private
  */
 Redis.prototype.flushQueue = function (error, options) {
-  options = defaults({}, options, {
+  options = defaults({}, {
     offlineQueue: true,
     commandQueue: true,
   });
