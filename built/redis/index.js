@@ -440,7 +440,7 @@ Redis.prototype.flushQueue = function (error, options) {
         if (this.commandQueue.length > 0) {
             getLogger().error("REDIS flushQueue start", {
                 commandsFlushed: this.commandsFlushed,
-                commandQueueLength: this.commandQueue.length
+                commandQueueLength: this.commandQueue.length,
             });
             this.commandsFlushed += this.commandQueue.length;
             if (this.stream) {

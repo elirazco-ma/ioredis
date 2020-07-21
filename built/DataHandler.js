@@ -38,15 +38,20 @@ class DataHandler {
             errorReplyCounter: this.errorReplyCounter,
             fatalErrorReplyCounter: this.fatalErrorReplyCounter,
             commandsCounter: this.redis.commandsCounter,
-            commandsFlushed: this.redis.commandsFlushed
+            commandsFlushed: this.redis.commandsFlushed,
         });
-        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+        if (this.successReplyCounter +
+            this.errorReplyCounter +
+            this.fatalErrorReplyCounter +
+            this.redis.commandQueue.length +
+            this.redis.commandsFlushed !=
+            this.redis.commandsCounter) {
             getLogger().error("REDIS FATAL ERROR UNEXPECTED QUEUES LENGTHS", {
                 successReplyCounter: this.successReplyCounter,
                 errorReplyCounter: this.errorReplyCounter,
                 fatalErrorReplyCounter: this.fatalErrorReplyCounter,
                 commandsCounter: this.redis.commandsCounter,
-                commandsFlushed: this.redis.commandsFlushed
+                commandsFlushed: this.redis.commandsFlushed,
             });
         }
     }
@@ -58,15 +63,20 @@ class DataHandler {
             errorReplyCounter: this.errorReplyCounter,
             fatalErrorReplyCounter: this.fatalErrorReplyCounter,
             commandsCounter: this.redis.commandsCounter,
-            commandsFlushed: this.redis.commandsFlushed
+            commandsFlushed: this.redis.commandsFlushed,
         });
-        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+        if (this.successReplyCounter +
+            this.errorReplyCounter +
+            this.fatalErrorReplyCounter +
+            this.redis.commandQueue.length +
+            this.redis.commandsFlushed !=
+            this.redis.commandsCounter) {
             getLogger().error("REDIS ERROR UNEXPECTED QUEUES LENGTHS", {
                 successReplyCounter: this.successReplyCounter,
                 errorReplyCounter: this.errorReplyCounter,
                 fatalErrorReplyCounter: this.fatalErrorReplyCounter,
                 commandsCounter: this.redis.commandsCounter,
-                commandsFlushed: this.redis.commandsFlushed
+                commandsFlushed: this.redis.commandsFlushed,
             });
         }
         if (!item) {
@@ -92,15 +102,20 @@ class DataHandler {
             errorReplyCounter: this.errorReplyCounter,
             fatalErrorReplyCounter: this.fatalErrorReplyCounter,
             commandsCounter: this.redis.commandsCounter,
-            commandsFlushed: this.redis.commandsFlushed
+            commandsFlushed: this.redis.commandsFlushed,
         });
-        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+        if (this.successReplyCounter +
+            this.errorReplyCounter +
+            this.fatalErrorReplyCounter +
+            this.redis.commandQueue.length +
+            this.redis.commandsFlushed !=
+            this.redis.commandsCounter) {
             getLogger().error("REDIS UNEXPECTED QUEUES LENGTHS", {
                 successReplyCounter: this.successReplyCounter,
                 errorReplyCounter: this.errorReplyCounter,
                 fatalErrorReplyCounter: this.fatalErrorReplyCounter,
                 commandsCounter: this.redis.commandsCounter,
-                commandsFlushed: this.redis.commandsFlushed
+                commandsFlushed: this.redis.commandsFlushed,
             });
         }
         if (!item) {
