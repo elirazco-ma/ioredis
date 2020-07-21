@@ -4,7 +4,7 @@ const command_1 = require("./command");
 const utils_1 = require("./utils");
 const RedisParser = require("redis-parser");
 const SubscriptionSet_1 = require("./SubscriptionSet");
-const { getLogger } = require("../logger");
+const { getLogger } = require("./logger");
 const debug = utils_1.Debug("dataHandler");
 class DataHandler {
     constructor(redis, parserOptions) {

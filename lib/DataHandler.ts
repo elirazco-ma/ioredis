@@ -5,7 +5,7 @@ import Command from "./command";
 import { Debug } from "./utils";
 import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";
-const { getLogger } = require("../logger");
+const { getLogger } = require("./logger");
 
 const debug = Debug("dataHandler");
 
