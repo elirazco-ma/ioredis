@@ -5,7 +5,7 @@ const command_1 = require("../command");
 const errors_1 = require("../errors");
 const utils_1 = require("../utils");
 const DataHandler_1 = require("../DataHandler");
-const { getLogger } = require('../logger');
+const { getLogger } = require("../logger");
 const debug = utils_1.Debug("connection");
 function connectHandler(self) {
     return function () {
@@ -131,7 +131,11 @@ function abortTransactionFragments(commandQueue) {
 function closeHandler(self) {
     return function () {
         self.setStatus("close");
-        getLogger().error('REDIS closeHandler queues lengths', { offlineQueue: self.offlineQueue.length, commandQueue: self.commandQueue.length, prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length });
+        getLogger().error("REDIS closeHandler queues lengths", {
+            offlineQueue: self.offlineQueue.length,
+            commandQueue: self.commandQueue.length,
+            prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+        });
         if (!self.prevCondition) {
             self.prevCondition = self.condition;
         }
@@ -185,7 +189,11 @@ exports.closeHandler = closeHandler;
 function errorHandler(self) {
     return function (error) {
         debug("error: %s", error);
-        getLogger().error('REDIS errorHandler queues lengths', { offlineQueue: self.offlineQueue.length, commandQueue: self.commandQueue.length, prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length });
+        getLogger().error("REDIS errorHandler queues lengths", {
+            offlineQueue: self.offlineQueue.length,
+            commandQueue: self.commandQueue.length,
+            prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+        });
         self.silentEmit("error", error);
     };
 }
@@ -193,7 +201,11 @@ exports.errorHandler = errorHandler;
 function readyHandler(self) {
     return function () {
         self.setStatus("ready");
-        getLogger().error('REDIS readyHandler queues lengths', { offlineQueue: self.offlineQueue.length, commandQueue: self.commandQueue.length, prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length });
+        getLogger().error("REDIS readyHandler queues lengths", {
+            offlineQueue: self.offlineQueue.length,
+            commandQueue: self.commandQueue.length,
+            prevCommandQueue: self.prevCommandQueue && self.prevCommandQueue.length,
+        });
         self.retryAttempts = 0;
         if (self.options.monitor) {
             self.call("monitor");

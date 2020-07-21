@@ -4,6 +4,7 @@ const command_1 = require("./command");
 const utils_1 = require("./utils");
 const RedisParser = require("redis-parser");
 const SubscriptionSet_1 = require("./SubscriptionSet");
+const { getLogger } = require("../logger");
 const debug = utils_1.Debug("dataHandler");
 class DataHandler {
     constructor(redis, parserOptions) {
@@ -21,16 +22,53 @@ class DataHandler {
                 this.returnReply(reply);
             },
         });
+        this.successReplyCounter = 0;
+        this.errorReplyCounter = 0;
+        this.fatalErrorReplyCounter = 0;
         redis.stream.on("data", (data) => {
             parser.execute(data);
         });
     }
     returnFatalError(err) {
+        this.fatalErrorReplyCounter++;
         err.message += ". Please report this.";
         this.redis.recoverFromFatalError(err, err, { offlineQueue: false });
+        getLogger().error("REDIS FATAL ERROR Got reply with lengths", {
+            successReplyCounter: this.successReplyCounter,
+            errorReplyCounter: this.errorReplyCounter,
+            fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+            commandsCounter: this.redis.commandsCounter,
+            commandsFlushed: this.redis.commandsFlushed
+        });
+        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+            getLogger().error("REDIS FATAL ERROR UNEXPECTED QUEUES LENGTHS", {
+                successReplyCounter: this.successReplyCounter,
+                errorReplyCounter: this.errorReplyCounter,
+                fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+                commandsCounter: this.redis.commandsCounter,
+                commandsFlushed: this.redis.commandsFlushed
+            });
+        }
     }
     returnError(err) {
+        this.errorReplyCounter++;
         const item = this.shiftCommand(err);
+        getLogger().error("REDIS ERROR Got reply with lengths", {
+            successReplyCounter: this.successReplyCounter,
+            errorReplyCounter: this.errorReplyCounter,
+            fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+            commandsCounter: this.redis.commandsCounter,
+            commandsFlushed: this.redis.commandsFlushed
+        });
+        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+            getLogger().error("REDIS ERROR UNEXPECTED QUEUES LENGTHS", {
+                successReplyCounter: this.successReplyCounter,
+                errorReplyCounter: this.errorReplyCounter,
+                fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+                commandsCounter: this.redis.commandsCounter,
+                commandsFlushed: this.redis.commandsFlushed
+            });
+        }
         if (!item) {
             return;
         }
@@ -41,6 +79,7 @@ class DataHandler {
         this.redis.handleReconnection(err, item);
     }
     returnReply(reply) {
+        this.successReplyCounter++;
         if (this.handleMonitorReply(reply)) {
             return;
         }
@@ -48,6 +87,22 @@ class DataHandler {
             return;
         }
         const item = this.shiftCommand(reply);
+        getLogger().error("REDIS Got reply with lengths", {
+            successReplyCounter: this.successReplyCounter,
+            errorReplyCounter: this.errorReplyCounter,
+            fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+            commandsCounter: this.redis.commandsCounter,
+            commandsFlushed: this.redis.commandsFlushed
+        });
+        if (this.successReplyCounter + this.errorReplyCounter + this.fatalErrorReplyCounter + this.redis.commandQueue.length + this.redis.commandsFlushed != this.redis.commandsCounter) {
+            getLogger().error("REDIS UNEXPECTED QUEUES LENGTHS", {
+                successReplyCounter: this.successReplyCounter,
+                errorReplyCounter: this.errorReplyCounter,
+                fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+                commandsCounter: this.redis.commandsCounter,
+                commandsFlushed: this.redis.commandsFlushed
+            });
+        }
         if (!item) {
             return;
         }
@@ -163,8 +218,8 @@ class DataHandler {
             const message = "Command queue state error. If you can reproduce this, please report it.";
             const error = new Error(message +
                 (reply instanceof Error
-                    ? ` Last error: ${reply.message}`
-                    : ` Last reply: ${reply.toString()}`));
+                    ? ` Last error: ${reply && reply.message}`
+                    : ` Last reply: ${reply && reply.toString()}`));
             this.redis.emit("error", error);
             return null;
         }

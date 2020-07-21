@@ -144,6 +144,8 @@ function Redis() {
   this.resetOfflineQueue();
 
   this.connectionEpoch = 0;
+  this.commandsCounter = 0;
+  this.commandsFlushed = 0;
 
   if (this.options.Connector) {
     this.connector = new this.options.Connector(this.options);
@@ -468,10 +470,9 @@ Redis.prototype.flushQueue = function (error, options) {
     }
   );
 
-  getLogger().error("REDIS flushQueue start");
-
   let item;
   if (options.offlineQueue) {
+    /*
     getLogger().error(
       "REDIS flushQueue queues lengths before offline queue flush",
       {
@@ -479,10 +480,12 @@ Redis.prototype.flushQueue = function (error, options) {
         commandQueue: this.commandQueue.length,
       }
     );
+    */
     while (this.offlineQueue.length > 0) {
       item = this.offlineQueue.shift();
       item.command.reject(error);
     }
+    /*
     getLogger().error(
       "REDIS flushQueue queues lengths after offline queue flush",
       {
@@ -490,13 +493,21 @@ Redis.prototype.flushQueue = function (error, options) {
         commandQueue: this.commandQueue.length,
       }
     );
+    */
   }
 
   if (options.commandQueue) {
     if (this.commandQueue.length > 0) {
+      getLogger().error("REDIS flushQueue start", {
+        commandsFlushed: this.commandsFlushed,
+        commandQueueLength: this.commandQueue.length,
+      });
+
+      this.commandsFlushed += this.commandQueue.length;
       if (this.stream) {
         this.stream.removeAllListeners("data");
       }
+      /*
       getLogger().error(
         "REDIS flushQueue queues lengths before command queue flush",
         {
@@ -504,10 +515,12 @@ Redis.prototype.flushQueue = function (error, options) {
           commandQueue: this.commandQueue.length,
         }
       );
+      */
       while (this.commandQueue.length > 0) {
         item = this.commandQueue.shift();
         item.command.reject(error);
       }
+      /*
       getLogger().error(
         "REDIS flushQueue queues lengths after command queue flush",
         {
@@ -515,6 +528,7 @@ Redis.prototype.flushQueue = function (error, options) {
           commandQueue: this.commandQueue.length,
         }
       );
+      */
     }
   }
 };
@@ -744,6 +758,7 @@ Redis.prototype.sendCommand = function (command, stream) {
     }
     (stream || this.stream).write(command.toWritable());
 
+    this.commandsCounter++;
     this.commandQueue.push({
       command: command,
       stream: stream,

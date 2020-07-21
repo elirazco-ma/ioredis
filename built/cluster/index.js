@@ -65,7 +65,7 @@ class Cluster extends events_1.EventEmitter {
         this.logger = options.logger;
         logtest.setLogger(this.logger);
         if (this.logger)
-            this.logger.warn('IOREDIS TEST LOG');
+            this.logger.warn("IOREDIS TEST LOG");
         this.connectionPool = new ConnectionPool_1.default(this.options.redisOptions);
         this.connectionPool.on("-node", (redis, key) => {
             this.emit("-node", redis);

@@ -14,7 +14,7 @@ const ScanStream_1 = require("../ScanStream");
 const commands = require("redis-commands");
 const PromiseContainer = require("../promiseContainer");
 const transaction_1 = require("../transaction");
-const { getLogger } = require('../logger');
+const { getLogger } = require("../logger");
 const RedisOptions_1 = require("./RedisOptions");
 const debug = utils_1.Debug("redis");
 /**
@@ -124,6 +124,8 @@ function Redis() {
     this.resetCommandQueue();
     this.resetOfflineQueue();
     this.connectionEpoch = 0;
+    this.commandsCounter = 0;
+    this.commandsFlushed = 0;
     if (this.options.Connector) {
         this.connector = new this.options.Connector(this.options);
     }
@@ -409,27 +411,63 @@ Redis.prototype.flushQueue = function (error, options) {
         offlineQueue: true,
         commandQueue: true,
     });
-    getLogger().error('REDIS flushQueue start');
     let item;
     if (options.offlineQueue) {
-        getLogger().error('REDIS flushQueue queues lengths before offline queue flush', { offlineQueue: this.offlineQueue.length, commandQueue: this.commandQueue.length });
+        /*
+        getLogger().error(
+          "REDIS flushQueue queues lengths before offline queue flush",
+          {
+            offlineQueue: this.offlineQueue.length,
+            commandQueue: this.commandQueue.length,
+          }
+        );
+        */
         while (this.offlineQueue.length > 0) {
             item = this.offlineQueue.shift();
             item.command.reject(error);
         }
-        getLogger().error('REDIS flushQueue queues lengths after offline queue flush', { offlineQueue: this.offlineQueue.length, commandQueue: this.commandQueue.length });
+        /*
+        getLogger().error(
+          "REDIS flushQueue queues lengths after offline queue flush",
+          {
+            offlineQueue: this.offlineQueue.length,
+            commandQueue: this.commandQueue.length,
+          }
+        );
+        */
     }
     if (options.commandQueue) {
         if (this.commandQueue.length > 0) {
+            getLogger().error("REDIS flushQueue start", {
+                commandsFlushed: this.commandsFlushed,
+                commandQueueLength: this.commandQueue.length
+            });
+            this.commandsFlushed += this.commandQueue.length;
             if (this.stream) {
                 this.stream.removeAllListeners("data");
             }
-            getLogger().error('REDIS flushQueue queues lengths before command queue flush', { offlineQueue: this.offlineQueue.length, commandQueue: this.commandQueue.length });
+            /*
+            getLogger().error(
+              "REDIS flushQueue queues lengths before command queue flush",
+              {
+                offlineQueue: this.offlineQueue.length,
+                commandQueue: this.commandQueue.length,
+              }
+            );
+            */
             while (this.commandQueue.length > 0) {
                 item = this.commandQueue.shift();
                 item.command.reject(error);
             }
-            getLogger().error('REDIS flushQueue queues lengths after command queue flush', { offlineQueue: this.offlineQueue.length, commandQueue: this.commandQueue.length });
+            /*
+            getLogger().error(
+              "REDIS flushQueue queues lengths after command queue flush",
+              {
+                offlineQueue: this.offlineQueue.length,
+                commandQueue: this.commandQueue.length,
+              }
+            );
+            */
         }
     }
 };
@@ -623,6 +661,7 @@ Redis.prototype.sendCommand = function (command, stream) {
             debug("write command[%s]: %d -> %s(%o)", this._getDescription(), this.condition.select, command.name, command.args);
         }
         (stream || this.stream).write(command.toWritable());
+        this.commandsCounter++;
         this.commandQueue.push({
             command: command,
             stream: stream,

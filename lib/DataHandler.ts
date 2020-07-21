@@ -5,6 +5,7 @@ import Command from "./command";
 import { Debug } from "./utils";
 import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";
+const { getLogger } = require("../logger");
 
 const debug = Debug("dataHandler");
 
@@ -26,6 +27,8 @@ interface IDataHandledable extends EventEmitter {
   status: string;
   condition: ICondition;
   commandQueue: Deque<ICommandItem>;
+  commandsCounter: number;
+  commandsFlushed: number;
 
   disconnect(reconnect: boolean): void;
   recoverFromFatalError(commandError: Error, err: Error, options: any): void;
@@ -38,6 +41,9 @@ interface IParserOptions {
 }
 
 export default class DataHandler {
+  successReplyCounter: number;
+  errorReplyCounter: number;
+  fatalErrorReplyCounter: number;
   constructor(private redis: IDataHandledable, parserOptions: IParserOptions) {
     const parser = new RedisParser({
       stringNumbers: parserOptions.stringNumbers,
@@ -53,18 +59,70 @@ export default class DataHandler {
       },
     });
 
+    this.successReplyCounter = 0;
+    this.errorReplyCounter = 0;
+    this.fatalErrorReplyCounter = 0;
+
     redis.stream.on("data", (data) => {
       parser.execute(data);
     });
   }
 
   private returnFatalError(err: Error) {
+    this.fatalErrorReplyCounter++;
     err.message += ". Please report this.";
     this.redis.recoverFromFatalError(err, err, { offlineQueue: false });
+    getLogger().error("REDIS FATAL ERROR Got reply with lengths", {
+      successReplyCounter: this.successReplyCounter,
+      errorReplyCounter: this.errorReplyCounter,
+      fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+      commandsCounter: this.redis.commandsCounter,
+      commandsFlushed: this.redis.commandsFlushed,
+    });
+    if (
+      this.successReplyCounter +
+        this.errorReplyCounter +
+        this.fatalErrorReplyCounter +
+        this.redis.commandQueue.length +
+        this.redis.commandsFlushed !=
+      this.redis.commandsCounter
+    ) {
+      getLogger().error("REDIS FATAL ERROR UNEXPECTED QUEUES LENGTHS", {
+        successReplyCounter: this.successReplyCounter,
+        errorReplyCounter: this.errorReplyCounter,
+        fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+        commandsCounter: this.redis.commandsCounter,
+        commandsFlushed: this.redis.commandsFlushed,
+      });
+    }
   }
 
   private returnError(err: Error) {
+    this.errorReplyCounter++;
     const item = this.shiftCommand(err);
+    getLogger().error("REDIS ERROR Got reply with lengths", {
+      successReplyCounter: this.successReplyCounter,
+      errorReplyCounter: this.errorReplyCounter,
+      fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+      commandsCounter: this.redis.commandsCounter,
+      commandsFlushed: this.redis.commandsFlushed,
+    });
+    if (
+      this.successReplyCounter +
+        this.errorReplyCounter +
+        this.fatalErrorReplyCounter +
+        this.redis.commandQueue.length +
+        this.redis.commandsFlushed !=
+      this.redis.commandsCounter
+    ) {
+      getLogger().error("REDIS ERROR UNEXPECTED QUEUES LENGTHS", {
+        successReplyCounter: this.successReplyCounter,
+        errorReplyCounter: this.errorReplyCounter,
+        fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+        commandsCounter: this.redis.commandsCounter,
+        commandsFlushed: this.redis.commandsFlushed,
+      });
+    }
     if (!item) {
       return;
     }
@@ -78,6 +136,7 @@ export default class DataHandler {
   }
 
   private returnReply(reply: ReplyData) {
+    this.successReplyCounter++;
     if (this.handleMonitorReply(reply)) {
       return;
     }
@@ -86,6 +145,29 @@ export default class DataHandler {
     }
 
     const item = this.shiftCommand(reply);
+    getLogger().error("REDIS Got reply with lengths", {
+      successReplyCounter: this.successReplyCounter,
+      errorReplyCounter: this.errorReplyCounter,
+      fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+      commandsCounter: this.redis.commandsCounter,
+      commandsFlushed: this.redis.commandsFlushed,
+    });
+    if (
+      this.successReplyCounter +
+        this.errorReplyCounter +
+        this.fatalErrorReplyCounter +
+        this.redis.commandQueue.length +
+        this.redis.commandsFlushed !=
+      this.redis.commandsCounter
+    ) {
+      getLogger().error("REDIS UNEXPECTED QUEUES LENGTHS", {
+        successReplyCounter: this.successReplyCounter,
+        errorReplyCounter: this.errorReplyCounter,
+        fatalErrorReplyCounter: this.fatalErrorReplyCounter,
+        commandsCounter: this.redis.commandsCounter,
+        commandsFlushed: this.redis.commandsFlushed,
+      });
+    }
     if (!item) {
       return;
     }
@@ -216,8 +298,8 @@ export default class DataHandler {
       const error = new Error(
         message +
           (reply instanceof Error
-            ? ` Last error: ${reply.message}`
-            : ` Last reply: ${reply.toString()}`)
+            ? ` Last error: ${reply && reply.message}`
+            : ` Last reply: ${reply && reply.toString()}`)
       );
       this.redis.emit("error", error);
       return null;
